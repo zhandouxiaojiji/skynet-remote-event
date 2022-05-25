@@ -1,22 +1,41 @@
 local skynet = require "skynet"
+local cluster = require "skynet.cluster"
 
 local tinsert = table.insert
 local tunpack = table.unpack
 
 local M = {}
 
+local function agent_call(agent, ...)
+    if agent.cluster_name then
+        return cluster.call(agent.cluster_name, agent.service, ...)
+    else
+        return skynet.call(agent.service, "lua", ...)
+    end
+end
+
+local function agent_send(agent, ...)
+    if agent.cluster_name then
+        return cluster.send(agent.cluster_name, agent.service, ...)
+    else
+        return skynet.send(agent.service, "lua", ...)
+    end
+end
+
 -- 订阅方
-function M.sub(service, event, callback_func)
+function M.sub(cluster_name, service, event, callback_func)
     assert(callback_func)
     local agent = {
         id = nil,
         service = service,
+        cluster_name = cluster_name,
         event = event,
+        watching = true,
     }
-    agent.id = skynet.call(service, "lua", "register", event)
+    agent.id = agent_call(agent, "register", event)
     skynet.fork(function ()
         while agent.watching do
-            local args = skynet.call(service, "lua", "wait", event)
+            local args = agent_call(agent, "wait", agent.id)
             for _, arg in ipairs(args) do
                 callback_func(tunpack(arg))
             end
@@ -27,7 +46,7 @@ end
 
 function M.unsub(agent)
     agent.watching = false
-    skynet.call(agent.service, "lua", "unregister", agent.id)
+    agent_send(agent, "unregister", agent.id)
 end
 
 
