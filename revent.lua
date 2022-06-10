@@ -104,4 +104,9 @@ function M.pub(event, ...)
     end
 end
 
+function M.pub_to_agent(agent, ...)
+    tinsert(agent.args, {...})
+    Skynet.wakeup(agent.co)
+end
+
 return M
