@@ -37,7 +37,7 @@ function M.sub(cluster_name, service, event, callback_func)
         while agent.watching do
             local args = agent_call(agent, "wait", agent.id)
             for _, arg in ipairs(args) do
-                callback_func(tunpack(arg))
+                xpcall(callback_func, debug.traceback, tunpack(arg))
             end
         end
     end)
