@@ -84,17 +84,22 @@ function M.unregister(id)
     Skynet.wakeup(agent.co)
 end
 
+local function fetch(agent)
+    local args = agent.args
+    agent.args = {}
+    agent.co = nil
+    return args
+end
+
 function M.wait(id)
     local agent = assert(id2agent[id], id)
     if #agent.args > 0 then
-        skynet.retpack(agent.args)
+        skynet.retpack(fetch(agent))
         return
     end
     agent.co = coroutine.running()
     skynet.wait()
-    skynet.retpack(agent.args)
-    agent.args = {}
-    agent.co = nil
+    skynet.retpack(fetch(agent))
 end
 
 function M.pub(event, ...)
